@@ -1,3 +1,5 @@
+Hi i'm in a demo
+
 # Streaming data from Cloud Storage into BigQuery using Cloud Functions
 This code looks at a complete ingest pipeline all the way from capturing streaming events 
 (upload of files to Cloud Storage), to doing basic processing, errorm handling, logging and 
