@@ -1,0 +1,407 @@
+clusters:
+  test:                           
+    tag_cl: tag0
+  mtest:                           
+    tag_cl: tag1, tag12
+  ctest3:                           
+    tag_cl: tag2, tag22
+    
+master:
+  proxy:
+    http: http
+  sapps:
+    projectId: test-data-sapps-np-4a5326
+    cicdProjectId: test-data-gamma-cicd-np-cdf73e
+    gkeCluster: test-data-sapps-np-gke
+    gkeRegion: australia-southeast1
+    sealedSecretPublicKey: sealed-secrets/certs/nonprod_sealed_secret_public_cert.pem
+    gcrRepo: asia.gcr.io
+    gcrProjectId: test-data-sapps-np-4a5326
+    hostProjectId: test-cs-network-np-3f46c8
+    sharedVpcName: test-cs-network-np-vpc
+    appDeploymentServiceAccount: deploy-service-account/dev/bamboo-deploy@test-data-sapps-np-4a5326.iam.gserviceaccount.com.zip.dat
+  dbConnect:
+    subdomain: operations.data.gcpnp.test
+    gunicornThreads: "2"
+    dgcpCerts: sealed-secrets/secrets/dev/dgcp/sealed_pgadmin-db-certs.yaml
+    gammaSingCerts: sealed-secrets/secrets/dev/gamma-sing/sealed_pgadmin-db-certs.yaml
+
+  dgcp:
+    sappsNamespace: dgcp-dev
+    servicesProjectId: test-data-dgcp-dev-55eb18
+    dbProjectId: test-data-dgcpdb-np-073660
+
+    dgcpDb:
+      tfStateBucket: test-data-dgcpdb-np-073660
+
+    airflow:
+      buckets:
+        workflows: test-data-dgcp-dev1-airflow-workflows
+        landing: test-data-dev1-dgcp-ops-aus-landing
+        staging: test-data-dev1-dgcp-ops-aus-staging
+        raw: test-data-dev1-dgcp-ops-aus-raw
+        reject: test-data-dev1-dgcp-ops-aus-reject
+        processed: test-data-dev1-dgcp-ops-aus-processed
+      dbCreds: sealed-secrets/secrets/dev/dgcp/sealed_airflow-app-db-credentials.yaml
+      genericCreds: sealed-secrets/secrets/dev/dgcp/sealed_airflow-app-generic-secret.yaml
+      flower:
+        enable: "false"
+      dbConfig:
+        sslMode: "true"
+        cert:
+          dir: "\\\\/opt\\\\/airflow\\\\/psql_certs"
+        host: "10.190.0.129"
+        port: "5432"
+      istio:
+        host: "airflow-batch.dgcp-dev.data.gcpnp.test"
+        gateway: "dgcp-dev-gateway.ingress.svc.cluster.local"
+      airflowContainer:
+        image:
+          name: airflow-batch-ubuntu-core
+          version: "5b739c388fbd8504811e08d03252785e34c6361d"
+        resources: #TODO: tune this via load testing
+          requests:
+            cpu: 200m
+            memory: 300Mi
+          limits:
+            cpu: 2000m
+            memory: 4000Mi
+      syncd:
+        image:
+          name: gcloud-client-ubuntu-core
+          version: "d5d248823b67a4e314382e758cc6a588931eae96"
+        resources: #TODO: tune this via load testing
+          requests:
+            cpu: 10m
+            memory: 300Mi
+          limits:
+            cpu: 2000m
+            memory: 4000Mi
+      calendar:
+        image:
+          name: calendar
+          version: "d577ce2c09a7b7ba5d341cbe77f6a608b27fb419"
+        resources: #TODO: tune this via load testing
+          requests:
+            cpu: 100m
+            memory: 200Mi
+          limits:
+            cpu: 1000m
+            memory: 1000Mi
+      redis:
+        image:
+          name: airflow-redis-3-2-7-alpine
+          version: "9c2fe71415d401b90ba2bc9761149eff2e2026bf"
+        resources: #TODO: tune this via load testing
+          requests:
+            cpu: 200m
+            memory: 300Mi
+          limits:
+            cpu: 2000m
+            memory: 4000Mi
+      worker:
+        replicaCount: "3"
+      secrets:
+        saSecret: airflow-batch-app-secret
+        dbSecret: airflow-db-credentials
+        genericSecret: airflow-general-secrets
+      pubsub:
+        trigger:
+          topic: batch_ingestion_event_topic
+    metadataApp:
+      metadataContainer:
+        resources: #TODO: tune this via load testing
+          requests:
+            cpu: 200m
+            memory: 300Mi
+          limits:
+            cpu: 2000m
+            memory: 4000Mi
+      nginx:
+        resources: #TODO: tune this via load testing
+          requests:
+            cpu: 200m
+            memory: 300Mi
+          limits:
+            cpu: 2000m
+            memory: 4000Mi
+      dbCreds: sealed-secrets/secrets/dev/dgcp/sealed_metadata-app-db-credentials.yaml
+      database:
+        host: "10.190.0.129"
+        port: "5432"
+      fixtures:
+        sealedSecret: sealed-secrets/secrets/dev/dgcp/sealed_mdx-fixtures-secret.yaml
+        
+    meta:  # Used by cloudsql uam
+      database:
+        instance: meta-db-dev-d43adf
+  gammaSing:
+    buildConfig: 
+      file: gamma-config/dev/gamma-sing/pdf/build_config.yaml
+      bucket: test-data-gamma-sing-dev-build-config
+    rootCA:
+      key: kms/resources/dev/gamma-sing/ca/ca-key.encrypted
+      cert: kms/resources/dev/gamma-sing/ca/ca-cert.encrypted
+      password: kms/resources/dev/gamma-sing/ca/CA_password.txt.encrypted
+      cert_sealed: sealed-secrets/secrets/dev/gamma-sing/ca/CARoot_sealed.yaml
+      trustStore:
+        key: non-secrets/resources/dev/gamma-sing/ca/sing.truststore.jks
+        password: kms/resources/dev/gamma-sing/ca/sing_trustStore_password.txt.encrypted
+        passwordSealed: sealed-secrets/secrets/dev/gamma-sing/ca/sing_trustStore_password_sealed.yaml
+    kms:
+      cloudsqldb: 
+        keyring: projects/test-data-gamma-sing-dev-bb67b9/locations/australia-southeast1/keyRings/cloudsqldb-password-key-ring
+        key: projects/test-data-gamma-sing-dev-bb67b9/locations/australia-southeast1/keyRings/cloudsqldb-password-key-ring/cryptoKeys/cloudsqldb-password-key
+      trustStore:
+        keyring: projects/test-data-gamma-sing-dev-bb67b9/locations/australia-southeast1/keyRings/cert-password-key-ring
+        key: projects/test-data-gamma-sing-dev-bb67b9/locations/australia-southeast1/keyRings/cert-password-key-ring/cryptoKeys/cert-password-truststore
+      keyStore:
+        keyring: projects/test-data-gamma-sing-dev-bb67b9/locations/australia-southeast1/keyRings/cert-password-key-ring
+        key: projects/test-data-gamma-sing-dev-bb67b9/locations/australia-southeast1/keyRings/cert-password-key-ring/cryptoKeys/cert-password-keystore
+      certStore:
+        keyring: projects/test-data-gamma-sing-dev-bb67b9/locations/australia-southeast1/keyRings/cert-password-key-ring
+        key: projects/test-data-gamma-sing-dev-bb67b9/locations/australia-southeast1/keyRings/cert-password-key-ring/cryptoKeys/cert-password-key
+      rootCA:
+        keyring: projects/test-data-gamma-sing-dev-bb67b9/locations/australia-southeast1/keyRings/cert-password-key-ring
+        key: projects/test-data-gamma-sing-dev-bb67b9/locations/australia-southeast1/keyRings/cert-password-key-ring/cryptoKeys/create-password-ca
+    kafka:
+      port: "9092"
+      loadbalancerIp: 10.172.21.122
+      loadbalancerIp2: 10.172.21.110
+      loadbalancerIp3: 10.172.21.111
+      nodeSelector:
+        nodetype: nodepool0
+      kafkaEndpoint: "cp-kafka-0.gamma-sing-dev.svc.cluster.local"
+      resources: #TODO: tune this via load testing
+        storage: 50Gi
+        requests:
+          cpu: 1000m
+          memory: 1Gi
+        limits:
+          cpu: 2000m
+          memory: 2Gi
+      keyStore:
+        file: non-secrets/resources/dev/gamma-sing/kafka/kafka.server.keystore.jks
+        password: sealed-secrets/secrets/dev/gamma-sing/kafka/kafka_keyStore_password_sealed.yaml
+      cert:
+        password: sealed-secrets/secrets/dev/gamma-sing/kafka/kafka_cert_password_sealed.yaml
+      clients:
+        dataflow:
+          keyStore:
+            file: non-secrets/resources/dev/gamma-sing/kafka/dataflow/kafka.dataflow.keystore.jks
+            password: kms/resources/dev/gamma-sing/kafka/dataflow/dataflow_keyStore_password.txt.encrypted
+          cert:
+            password: kms/resources/dev/gamma-sing/kafka/dataflow/dataflow_cert_password.txt.encrypted
+        nudgesandgoals:
+          keyStore:
+            file: non-secrets/resources/dev/gamma-sing/kafka/nudgesandgoals/kafka.nudgesandgoals.keystore.jks
+            password: sealed-secrets/secrets/dev/gamma-sing/kafka/nudgesandgoals/nudgesandgoals_keyStore_password_sealed.yaml
+          cert:
+            password: sealed-secrets/secrets/dev/gamma-sing/kafka/nudgesandgoals/nudgesandgoals_cert_password_sealed.yaml
+        inspector:
+          key: sealed-secrets/secrets/dev/gamma-sing/kafka/inspector/kafka_inspector_key_sealed.yaml
+          cert: sealed-secrets/secrets/dev/gamma-sing/kafka/inspector/kafka_inspector_certificate_sealed.yaml
+        locust:
+          key: sealed-secrets/secrets/dev/gamma-sing/kafka/locust/kafka_locust_key_sealed.yaml
+          cert: sealed-secrets/secrets/dev/gamma-sing/kafka/locust/kafka_locust_certificate_sealed.yaml
+    namespace: gamma-sing-dev
+    servicesProjectId: test-data-gamma-sing-dev-bb67b9
+    dbProjectId: test-data-gamma-singdb-np-413396
+    dataflow:
+      dataflowBucket: test-data-gamma-sing-dev-dataflow
+      certBucket: test-data-gamma-sing-dev-kms
+      apigatewaycertBucket: test-data-gamma-sing-dev-kms/apigateway
+    gammaSingDb:
+      tfStateBucket: test-data-gamma-singdb-np-413396
+    buildTriggerApp:
+      deployFileBucket: test-data-gamma-sing-dev-deploy
+      buildConfigBucket: test-data-gamma-sing-dev-build-config
+      serviceAccount:
+        name: asdf
+        key: sealed
+      pubsub:
+        fileArrival:
+          topic: sing-build
+          sub: sing-build
+      nodeSelector:
+        nodetype: nodepool0
+    cloudBuild:
+      serviceAccount:
+        name: asdf
+        key: sealed
+    airflow:
+      dbCreds: sealed-secrets/secrets/dev/gamma-sing/sealed_airflow-app-db-credentials.yaml
+      genericCreds: sealed-secrets/secrets/dev/gamma-sing/sealed_airflow-app-generic-secret.yaml
+      flower:
+        enable: "false"
+      buckets:
+        workflows: test-data-gamma-sing-dev-airflow-workflows
+        landing: x
+        staging: x
+        raw: x
+        reject: x
+        processed: x
+      dbConfig:
+        sslMode: "true"
+        cert:
+          dir: "\\\\/opt\\\\/airflow\\\\/psql_certs"
+        host: "10.190.0.134"
+        port: "5432"
+      istio:
+        host: "airflow-pdf.gamma-sing-dev.data.gcpnp.test"
+        gateway: "gamma-sing-dev-gateway.ingress.svc.cluster.local"
+      airflowContainer:
+        image:
+          name: airflow-pdf-alpine
+          version: "latest"
+        resources: #TODO: tune this via load testing
+          requests:
+            cpu: 200m
+            memory: 300Mi
+          limits:
+            cpu: 2000m
+            memory: 4000Mi
+      syncd:
+        image:
+          name: airflow-gcloud-alpine
+          version: "latest"
+        resources: #TODO: tune this via load testing
+          requests:
+            cpu: 10m
+            memory: 300Mi
+          limits:
+            cpu: 2000m
+            memory: 4000Mi
+      calendar:
+        image:
+          name: calendar-airflow-alpine
+          version: "latest"
+        resources: #TODO: tune this via load testing
+          requests:
+            cpu: 100m
+            memory: 200Mi
+          limits:
+            cpu: 1000m
+            memory: 1000Mi
+      redis:
+        image:
+          name: redis-alpine
+          version: "latest"
+        resources: #TODO: tune this via load testing
+          requests:
+            cpu: 200m
+            memory: 300Mi
+          limits:
+            cpu: 2000m
+            memory: 4000Mi
+      worker:
+        replicaCount: "3"
+      secrets:
+        saSecret: pdf-job-app-secret
+        dbSecret: airflow-db-credentials
+        genericSecret: airflow-general-secrets
+      pubsub:
+        trigger:
+          topic: x
+
+    metadataApp:
+      metadataContainer:
+        resources: #TODO: tune this via load testing
+          requests:
+            cpu: 200m
+            memory: 300Mi
+          limits:
+            cpu: 2000m
+            memory: 4000Mi
+      nginx:
+        resources: #TODO: tune this via load testing
+          requests:
+            cpu: 200m
+            memory: 300Mi
+          limits:
+            cpu: 2000m
+            memory: 4000Mi
+      dbCreds: sealed-secrets/secrets/dev/gamma-sing/sealed_metadata-app-db-credentials.yaml
+      database:
+        host: "10.190.0.134"
+        port: "5432"
+      fixtures:
+        sealedSecret: sealed-secrets/secrets/dev/gamma-sing/sealed_mdx-fixtures-secret.yaml
+    meta:  # for uam
+      database:
+        instance: meta-db-dev-e673b6
+    nudgesandgoals:
+      dbCreds: sealed-secrets/secrets/dev/gamma-sing/sealed_nudgesandgoals-db-credentials.yaml
+      jwtKeystore: non-secrets/resources/dev/gamma-sing/nudgesandgoals/server.truststore
+      jwtKeystorePwd: sealed-secrets/secrets/dev/gamma-sing/sealed_jwt-truststore-password-secret.yaml
+      initialDelaySeconds: "500"
+      resource:
+        cpu: "500m"
+        memory: "2000Mi"
+      database:
+        host: "10.190.0.46"
+        instance: nudgesandgoals-db-dev-abb28e
+        port: "5432"
+        kms:
+          name: kms/resources/dev/gamma-sing/cloud-sql/nudgesandgoalsdb.encrypted
+          instance: kms/resources/dev/gamma-sing/cloud-sql/instance.encrypted
+          host: kms/resources/dev/gamma-sing/cloud-sql/ipaddress.encrypted
+          cert: 
+            serverCert: kms/resources/dev/gamma-sing/cloud-sql/certs/servercert.encrypted
+            serverCertCN: kms/resources/dev/gamma-sing/cloud-sql/certs/servercertcn.encrypted
+            client:
+              dataflow:
+                cert: kms/resources/dev/gamma-sing/cloud-sql/certs/dataflow/clientcert.encrypted
+                key: kms/resources/dev/gamma-sing/cloud-sql/certs/dataflow/clientkey.encrypted
+          users:
+            client:
+              dataflow:
+                user: kms/resources/dev/gamma-sing/cloud-sql/users/dataflow/dbusername.encrypted
+                password: kms/resources/dev/gamma-sing/cloud-sql/users/dataflow/dbpassword.encrypted
+      hostDomain: data.gcpnp.test
+    apigateway:
+      namespace: gamma-sing-apigateway-dev
+      subdomain: "data.gcpnp.test"
+      dbCreds: sealed-secrets/secrets/dev/gamma-sing/sealed_apigateway-db-credentials.yaml
+      dbCredsV2: sealed-secrets/secrets/dev/gamma-sing/sealed_apigateway-db-credentials-v2.yaml
+      appServiceAccount: sealed-secrets/secrets/dev/gamma-sing/sealed_apigateway-service-account.yaml
+      tracker:
+        schedule: "'0 */1 * * *'"
+        suspend: "true"
+      reconciliation:
+        schedule: "'0 3 * * *'"
+        suspend: "true"
+        transforms:
+          disableAccountProcessing: "true"
+        nudgesandgoalsContainer:
+          image:
+            name: nudgesandgoals-frontend
+            tag: no-jwt
+            project: test-data-sapps-np-4a5326
+      database:
+        host: "10.190.0.32"
+        instance: apigateway-db-dev-8b1f24
+        port: "5432"
+        kms:
+          name: kms/resources/dev/gamma-sing/cloud-sql/apigatewaydb.encrypted
+          instance: kms/resources/dev/gamma-sing/cloud-sql/apigatewayinstance.encrypted
+          host: kms/resources/dev/gamma-sing/cloud-sql/apigatewayipaddress.encrypted
+          cert: 
+            serverCert: kms/resources/dev/gamma-sing/cloud-sql/certs/apigatewayservercert.encrypted
+            serverCertCN: kms/resources/dev/gamma-sing/cloud-sql/certs/apigatewayservercertcn.encrypted
+            client:
+              dataflow:
+                cert: kms/resources/dev/gamma-sing/cloud-sql/certs/dataflow/apigatewayclientcert.encrypted
+                key: kms/resources/dev/gamma-sing/cloud-sql/certs/dataflow/apigatewayclientkey.encrypted
+          users:
+            client:
+              dataflow:
+                user: kms/resources/dev/gamma-sing/cloud-sql/users/dataflow/apigatewaydbusername.encrypted
+                password: kms/resources/dev/gamma-sing/cloud-sql/users/dataflow/apigatewaydbpassword.encrypted
+
+
+  pdf:
+    gcrImageName: gamma-data-factory
+    gcrImageNameJava: gamma-data-factory-java
+    cloudBuildNetwork: asd
+
