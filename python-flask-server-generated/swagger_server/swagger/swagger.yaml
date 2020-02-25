@@ -1,0 +1,109 @@
+openapi: 3.0.1
+info:
+  title: MDH
+  description: 'Metadata Hub (MDH) is intended to be the source of truth for metadata
+    around the Funds Data Solution (FDS) platform. It has the ability to load metadata
+    configuration from yaml, and serve that information up via API, and will also
+    be the store of information for pipeline information while ingesting files into
+    the platform '
+  version: 1.0.0
+servers:
+- url: https://appengine.flask.something/v1
+paths:
+  /table:
+    get:
+      summary: all tables in MDH
+      description: get the title of all tables that exist in MDH
+      operationId: table_get
+      parameters:
+      - name: bodyLimit
+        in: query
+        description: The amount of tables returned
+        required: false
+        style: form
+        explode: true
+        schema:
+          maximum: 20
+          minimum: 10
+          type: integer
+          example: 15
+      - name: pageLimit
+        in: query
+        description: The pages to return table info
+        required: false
+        style: form
+        explode: true
+        schema:
+          maximum: 5
+          minimum: 1
+          type: integer
+          example: 2
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tables'
+      x-openapi-router-controller: swagger_server.controllers.default_controller
+    post:
+      description: Creates a new table in MDH
+      operationId: table_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TableName'
+        required: true
+      responses:
+        "200":
+          description: Successfully added table
+      x-openapi-router-controller: swagger_server.controllers.default_controller
+  /table/{id}:
+    get:
+      description: Obtain information about specific table
+      operationId: table_id_get
+      parameters:
+      - name: id
+        in: path
+        description: The ID of the table
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: integer
+          example: 54
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Table'
+      x-openapi-router-controller: swagger_server.controllers.default_controller
+components:
+  schemas:
+    Tables:
+      type: array
+      description: An array of table info
+      items:
+        $ref: '#/components/schemas/Table'
+    Table:
+      properties:
+        id:
+          type: integer
+          example: 4
+        table name:
+          type: string
+          example: member_account
+      description: Model containing table info
+      example:
+        table name: member_account
+        id: 4
+    TableName:
+      properties:
+        table name:
+          type: string
+          example: member_account
+      description: Model containing only Table Name
+
