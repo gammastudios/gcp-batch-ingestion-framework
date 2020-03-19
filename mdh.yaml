@@ -1,0 +1,220 @@
+openapi: 3.0.1
+info:
+  title: MDH
+  description: 'Metadata Hub (MDH) is intended to be the source of truth for metadata
+    around the Funds Data Solution (FDS) platform. It has the ability to load metadata
+    configuration from yaml, and serve that information up via API, and will also
+    be the store of information for pipeline information while ingesting files into
+    the platform '
+  version: 1.0.0
+servers:
+- url: https://appengine.flask.something/v1
+paths:
+  /tables:
+    get:
+      summary: All tables in MDH
+      description: get the title of all tables that exist in MDH
+      parameters:
+      - name: bodyLimit
+        in: query
+        description: The amount of tables returned
+        schema:
+          type: integer
+          minimum: 10
+          maximum: 20
+          example: 15
+      - name: pageLimit
+        in: query
+        description: The pages to return table info
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 5
+          example: 2
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Tables"
+        400:
+          description: "Invalid value"
+    post:
+      summary: Creates a new table in MDH
+      description: Creates a new table in MDH
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TableName"
+      responses:
+        200:
+          description: Successfully added table
+        405:
+          description: "Invalid input"          
+  /tables/{id}:
+    get:
+      summary: Obtain information about specific table
+      parameters:
+        - in: path
+          name: id
+          required: true
+          description: The Name of the table
+          schema:
+            type: string
+            example: member_account_information
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Table'
+  /tables/{id}/columns:
+    get:
+      summary: All columns for a particular table
+      description: Obtain information on columns for a particular table
+      parameters:
+        - name: bodyLimit
+          in: query
+          description: The amount of columns returned
+          schema:
+            type: integer
+            minimum: 5
+            maximum: 1000
+            example: 25
+        - name: pageLimit
+          in: query
+          description: The pages to return column info
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 20
+            example: 2
+        - in: path
+          name: id
+          required: true
+          description: The ID of the table
+          schema:
+            type: string
+            example: dd_account
+      responses:
+        200:
+          description: Successfully retrieved column
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Columns'
+  /run:
+    get:
+      summary: All information about a particular end-to-end batch run of file ingestion
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                properties:
+                  run id:
+                    $ref: "#/components/schemas/RunID"
+                  date:
+                    $ref: "#/components/schemas/DateCalendar"
+    post:
+      summary: Update metadata on a batch load
+      description: Update metadata on a batch load
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              properties:
+                run date: 
+                  type: string
+                  example: 20200201 -> this is in the format YYYYMMDD
+      responses:
+        200:
+          description: Successfully added batch run information
+  /calendar:
+    get:
+      summary: Use this to save on calculation of business days.
+      description: This base response gives you todays date in a string
+      responses:
+        200:
+          description: Todays date retrieved
+          content:
+            application/json:
+              schema:
+                properties:
+                  date:
+                    $ref: "#/components/schemas/DateCalendar"
+  /calendar/previousBusinessDay:
+    summary: Will return a string of the previous business day
+    description: Will return a string of the previous business day, based on the date on when it's called
+    get:
+      responses:
+        200:
+          description: Successfully retrieved yesterdays business day
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DateCalendar"
+  /calendar/nextBusinessDay:
+    summary: Will return a string of the next business day
+    description: Will return a string of the next business day, based on the date on when it's called
+    get:
+      responses:
+        200:
+          description: Successfully retrieved tomorrows business day
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DateCalendar"    
+
+components:
+  schemas:
+    Columns:
+      description: An array of column info
+      type: array
+      items:
+        $ref: '#/components/schemas/Column'
+    Column:
+      description: Model containing column info
+      properties:
+        column name:
+          type: string
+          example: acct3_account_all
+    Tables:
+      description: An array of table info
+      type: array
+      items:
+        $ref: '#/components/schemas/Table'
+    Table:
+      description: Model containing table info
+      properties:
+        id:
+          type: string
+          example: member_account_info
+        table name:
+          type: string
+          example: member_account
+    TableName:
+      description: Model containing only Table Name
+      properties:
+        table name:
+          type: string
+          example: member_account        
+    DateCalendar:
+      description: Model that returns todays date as a String in YYYYMMDD
+      properties:
+        date:
+          type: string
+          example: 20200101
+    RunID:
+      description: A run id that tied to a daily batch run
+      properties:
+        run id: 
+          type: integer
+          example: 3
+ 
